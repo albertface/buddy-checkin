@@ -3,9 +3,9 @@ name: buddy-checkin
 on:
   schedule:
     # UTC 17:03 = 北京时间 01:03（避开整点高峰，实际开跑更贴近凌晨1点）
-    - cron: "13 17 * * *"
+    - cron: "23 17 * * *"
     # UTC 05:03 = 北京时间 13:03
-    - cron: "31 5 * * *"
+    # - cron: "31 5 * * *"
   workflow_dispatch:
 
 permissions:
