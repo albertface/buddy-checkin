@@ -30,11 +30,27 @@ FETCH_JS = """async ([path]) => {
 }"""
 
 
-def call(page, path):
+# def call(page, path):
+#     try:
+#         return page.evaluate(FETCH_JS, [path])
+#     except Exception as e:
+#         return {"http": -1, "error": str(e)[:200]}
+
+def call(page, path, retry_401=True):
     try:
-        return page.evaluate(FETCH_JS, [path])
+        ret = page.evaluate(FETCH_JS, [path])
     except Exception as e:
         return {"http": -1, "error": str(e)[:200]}
+    # HTTP 401 时重试一次：先重新进入首页，给浏览器一次刷新登录态/cookie的机会
+    if retry_401 and ret.get("http") == 401:
+        try:
+            print(f"[WARN] {path} 返回 HTTP 401，准备重试一次 ...")
+            page.goto(BASE, wait_until="domcontentloaded", timeout=45000)
+            page.wait_for_timeout(3000)
+            return page.evaluate(FETCH_JS, [path])
+        except Exception as e:
+            return {"http": -1, "error": str(e)[:200]}
+    return ret
 
 
 def main():
@@ -69,7 +85,8 @@ def main():
             print(">>> 登录成功后会自动检测并保存, 无需其他操作 ...")
             for _ in range(150):
                 page.wait_for_timeout(4000)
-                st = call(page, STATUS_URL)
+                # st = call(page, STATUS_URL)
+                st = call(page, STATUS_URL, retry_401=False)
                 if st.get("http") == 200:
                     ctx.storage_state(path=str(STATE))
                     print("[OK] 检测到登录成功, 登录态已保存到 state.json!")
